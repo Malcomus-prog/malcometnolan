@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ToolCustom Premium</title>
+
+<style>
+:root{
+  --amazon-blue:#131921;
+  --amazon-light:#232f3e;
+  --amazon-yellow:#febd69;
+  --amazon-orange:#ff9900;
+  --bg:#eaeded;
+  --text:#000;
+  --card:#fff;
+}
+
+body.dark{
+  --bg:#111;
+  --text:#fff;
+  --card:#1c1c1c;
+}
+
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  transition:0.3s;
+}
+
+/* HEADER */
+header{
+  background:var(--amazon-blue);
+  color:white;
+  padding:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.logo{font-size:20px;font-weight:bold;}
+.cart-icon{
+  background:var(--amazon-yellow);
+  padding:6px 12px;
+  border-radius:20px;
+  color:black;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.search-bar input{
+  padding:6px;
+  border:none;
+  border-radius:4px;
+}
+
+/* NAV */
+nav{
+  background:var(--amazon-light);
+  padding:10px;
+  display:flex;
+  gap:15px;
+  flex-wrap:wrap;
+}
+nav a{
+  color:white;
+  text-decoration:none;
+  cursor:pointer;
+}
+nav a:hover{color:var(--amazon-yellow);}
+
+/* PAGE */
+.page{
+  display:none;
+  max-width:1200px;
+  margin:20px auto;
+  padding:20px;
+}
+.active{display:block;}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:20px;
+}
+
+.product{
+  background:var(--card);
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.2);
+  cursor:pointer;
+}
+
+.product img{
+  width:100%;
+  height:160px;
+  object-fit:contain;
+}
+
+.price{color:#B12704;font-weight:bold;}
+button{
+  padding:8px;
+  border:none;
+  border-radius:20px;
+  background:var(--amazon-yellow);
+  cursor:pointer;
+  margin-top:5px;
+}
+button:hover{background:var(--amazon-orange);}
+
+input, select{
+  padding:8px;
+  margin:5px 0;
+  width:100%;
+}
+
+/* MOBILE */
+@media(max-width:768px){
+  header{flex-direction:column;gap:10px;}
+  nav{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🛠 ToolCustom Premium</div>
+  <div class="search-bar">
+    <input type="text" placeholder="Rechercher..." onkeyup="searchProducts(this.value)">
+  </div>
+  <div>
+    <button onclick="toggleDark()">🌙</button>
+    <span class="cart-icon" onclick="showPage('cart')">🛒 <span id="cartCount">0</span></span>
+  </div>
+</header>
+
+<nav>
+  <a onclick="showPage('home')">Accueil</a>
+  <a onclick="showPage('shop')">Boutique</a>
+  <a onclick="showPage('cart')">Panier</a>
+  <a onclick="showPage('checkout')">Paiement</a>
+</nav>
+
+<!-- HOME -->
+<div id="home" class="page active">
+  <h2>Bienvenue sur ToolCustom</h2>
+  <p>Marketplace professionnelle d’outils industriels.</p>
+</div>
+
+<!-- SHOP -->
+<div id="shop" class="page">
+  <h2>Produits</h2>
+  <div class="grid" id="productGrid"></div>
+</div>
+
+<!-- PRODUCT DETAIL -->
+<div id="detail" class="page">
+  <button onclick="showPage('shop')">⬅ Retour</button>
+  <h2 id="detailName"></h2>
+  <img id="detailImg" style="width:300px">
+  <p id="detailPrice"></p>
+  <button onclick="addToCart(currentProduct.name,currentProduct.price)">Ajouter au panier</button>
+
+  <h3>Avis clients</h3>
+  <div id="reviews"></div>
+  <input type="text" id="reviewInput" placeholder="Votre avis...">
+  <button onclick="addReview()">Ajouter avis</button>
+</div>
+
+<!-- CART -->
+<div id="cart" class="page">
+  <h2>Panier</h2>
+  <ul id="cartList"></ul>
+  <h3>Total: <span id="total">0</span> €</h3>
+  <input type="text" placeholder="Code promo" id="promoInput">
+  <button onclick="applyPromo()">Appliquer promo</button>
+</div>
+
+<!-- CHECKOUT -->
+<div id="checkout" class="page">
+  <h2>Paiement</h2>
+  <input placeholder="Nom complet">
+  <input placeholder="Adresse">
+  <input placeholder="Numéro carte bancaire">
+  <input placeholder="Date expiration">
+  <input placeholder="CVV">
+  <button onclick="alert('Paiement validé ✅')">Payer</button>
+</div>
+
+<script>
+let products=[
+  {name:"Tournevis",price:5,img:"https://images.unsplash.com/photo-1586864387967-d02ef85d93e8"},
+  {name:"Perceuse",price:25,img:"https://images.unsplash.com/photo-1599058918144-1ffabb6ab9a9"},
+  {name:"Marteau",price:6,img:"https://images.unsplash.com/photo-1611516491426-03025e6043c1"}
+];
+
+let cart=[];
+let total=0;
+let currentProduct=null;
+let discount=0;
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function renderProducts(){
+  let grid=document.getElementById("productGrid");
+  grid.innerHTML="";
+  products.forEach(p=>{
+    grid.innerHTML+=`
+      <div class="product" onclick="showDetail('${p.name}')">
+        <img src="${p.img}">
+        <h3>${p.name}</h3>
+        <p class="price">${p.price}€</p>
+      </div>
+    `;
+  });
+}
+
+function showDetail(name){
+  currentProduct=products.find(p=>p.name===name);
+  document.getElementById("detailName").innerText=currentProduct.name;
+  document.getElementById("detailImg").src=currentProduct.img;
+  document.getElementById("detailPrice").innerText=currentProduct.price+"€";
+  showPage("detail");
+}
+
+function addToCart(name,price){
+  cart.push({name,price});
+  total+=price;
+  updateCart();
+}
+
+function updateCart(){
+  document.getElementById("cartCount").innerText=cart.length;
+  document.getElementById("total").innerText=(total-discount);
+  document.getElementById("cartList").innerHTML=
+    cart.map((c,i)=>`<li>${c.name} - ${c.price}€</li>`).join("");
+}
+
+function addReview(){
+  let text=document.getElementById("reviewInput").value;
+  if(!text)return;
+  document.getElementById("reviews").innerHTML+=`<p>⭐ ${text}</p>`;
+  document.getElementById("reviewInput").value="";
+}
+
+function applyPromo(){
+  let code=document.getElementById("promoInput").value;
+  if(code==="PROMO10"){
+    discount=10;
+    alert("Réduction de 10€ appliquée !");
+  }
+  updateCart();
+}
+
+function toggleDark(){
+  document.body.classList.toggle("dark");
+}
+
+function searchProducts(value){
+  value=value.toLowerCase();
+  document.querySelectorAll(".product").forEach(p=>{
+    p.style.display=p.innerText.toLowerCase().includes(value)?"block":"none";
+  });
+}
+
+renderProducts();
+</script>
+
+</body>
+</html>
